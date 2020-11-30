@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace WhatToDo
 {
@@ -11,13 +12,24 @@ namespace WhatToDo
 		static void Main(string[] args)
 		{
  			var random = new Random(Environment.TickCount);
-			var suggestions = GetSuggestions(GetActivityType(args));
+			var activity = args.Any() && args[0].ToLower() == "--activity";
+
+			var suggestions = activity ? GetSuggestions("WhatToDo.ActivityGameWordList.txt") : GetSuggestions(GetActivityType(args));
 
 			bool hasMoreSuggestion;
 			ConsoleKeyInfo keyInfo;
 			do
 			{
-				SuggestSomething(suggestions, random);
+				if (activity)
+				{
+					var game = GetActivityGameWord(suggestions, random);
+					Console.WriteLine(game);
+				}
+				else
+				{
+					SuggestSomething(suggestions, random);
+				}
+
 				hasMoreSuggestion = suggestions.Count > 0;
 				if (hasMoreSuggestion)
 				{
@@ -60,6 +72,14 @@ namespace WhatToDo
 			return ActivityType.All;
 		}
 
+		private static string GetActivityGameWord(IList<string> activityGameWords, Random random)
+		{
+			var nextType = random.Next((int)ActivityGameTask.Talk + 1);
+			var next = random.Next(activityGameWords.Count);
+			activityGameWords.RemoveAt(next);
+			return $"{(ActivityGameTask)nextType} - {activityGameWords[next]}";
+		}
+
 		private static IList<string> GetSuggestions(ActivityType activityType)
 		{
 			var result = new List<string>();
@@ -81,7 +101,7 @@ namespace WhatToDo
 			var assembly = Assembly.GetExecutingAssembly();
 			using (var toDoStream = assembly.GetManifestResourceStream(resourceName))
 			{
-				using (var streamReader = new StreamReader(toDoStream))
+				using (var streamReader = new StreamReader(toDoStream, Encoding.UTF8))
 				{
 					var fileContent = streamReader.ReadToEnd();
 					return fileContent.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).ToList<string>();
